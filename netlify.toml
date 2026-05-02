@@ -1,0 +1,13 @@
+[build]
+  command = "yarn build"
+  publish = ".next"
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
+[functions]
+  node_bundler = "esbuild"
+
