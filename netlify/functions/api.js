@@ -1,7 +1,7 @@
 // Netlify Firestore API - Fixed SMS path parsing
 const admin = require('firebase-admin');
 const { v4: uuidv4 } = require('uuid');
-const Vonage = require('@vonage/server-sdk');
+const Vonage = require('@vonage/server-sdk').default;
 
 const DEFAULT_SETTINGS = {
   messageTwoWeeks: 'Buna ziua {nume}, va reamintim ca peste 2 saptamani (la {data}) este scadenta verificarea centralei {model}. Va rugam sa programati. Ena Instal.',
