@@ -193,6 +193,31 @@ async function handle(request, { params }) {
         await logSMS(db, { clientId: id, phone: client.phone, message: text, status: r.ok ? 'sent' : 'failed', ...body })
         return NextResponse.json(r)
       }
+
+      if (sub === 'verify' && method === 'POST') {
+        const today = new Date().toISOString().slice(0, 10)
+        const newDueDate = addYears(today, 2)
+        
+        // Add to verification history
+        const verificationEntry = {
+          id: uuidv4(),
+          date: today,
+          notes: 'Verificare periodică'
+        }
+        
+        // Get existing history or empty array
+        const existingHistory = client.verificationHistory || []
+        
+        await db.doc(doc.id).update({
+          lastVerification: today,
+          dueDate: newDueDate,
+          smsTwoWeeksSent: false,
+          smsDueDateSent: false,
+          verificationHistory: [...existingHistory, verificationEntry]
+        })
+        
+        return NextResponse.json({ ok: true, newDueDate })
+      }
     }
 
     return NextResponse.json({ error: 'Not found' }, { status: 404 })

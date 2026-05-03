@@ -213,7 +213,7 @@ function App() {
             {view !== 'home' && (
               <button
                 onClick={() => {
-                  if (view === 'detail') setView('list')
+                  if (view === 'detail' || view === 'new') setView('home')
                   else setView('home')
                 }}
                 className="p-1 hover:bg-white/10 rounded-none transition"
@@ -222,7 +222,7 @@ function App() {
               </button>
             )}
             <h1 className="text-xl font-bold tracking-tight">
-              {view === 'home' && 'Reamintiri VTP'}
+              {view === 'home' && 'Ena Instal App'}
               {view === 'new' && (editing ? 'Editează client' : 'Client nou')}
               {view === 'list' && 'Toți clienții'}
               {view === 'detail' && 'Detalii client'}
@@ -344,7 +344,7 @@ function HomeView({ stats, dueClients, soonClients, total, onNew, onAll, onHisto
     <div className="space-y-5">
       <div>
         <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          Reamintiri VTP
+          Ena Instal App
         </h2>
         <p className="text-sm text-slate-500 mt-1">
           Verificări odată la 2 ani · SMS automat
@@ -906,17 +906,17 @@ function HistoryView({ history }) {
           />
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <div>
+          <div className="min-w-0">
             <Label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
               De la data
             </Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="text-sm" />
           </div>
-          <div>
+          <div className="min-w-0">
             <Label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
               Până la data
             </Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="text-sm" />
           </div>
         </div>
         {(q || from || to) && (
