@@ -97,19 +97,8 @@ function App() {
 
   useEffect(() => {
     loadAll()
-    // Run cron check only on initial app load (home view)
-    if (view === 'home') {
-      fetch('/api/cron/check', { method: 'POST' })
-        .then(r => r.json())
-        .then(data => {
-          console.log('Cron check completed:', data)
-          // Reload client data to get updated smsCount
-          if (data.sent > 0) {
-            loadAll()
-          }
-        })
-        .catch(() => {})
-    }
+    // Note: Cron check is now handled by Netlify Scheduled Functions (runs once daily at 9 AM)
+    // Manual SMS sending is available via the "Trimite SMS acum" button in client details
   }, [])
 
   const selected = useMemo(
