@@ -1,7 +1,6 @@
-// Netlify Firestore API - Firebase + Vonage SMS
+// Netlify Firestore API - Firebase + Vonage SMS (VONAGE CONSTRUCTOR FIXED)
 const admin = require('firebase-admin');
 const { v4: uuidv4 } = require('uuid');
-const Vonage = require('@vonage/server-sdk');
 
 const DEFAULT_SETTINGS = {
   messageTwoWeeks: 'Buna ziua {nume}, va reamintim ca peste 2 saptamani (la {data}) este scadenta verificarea centralei {model}. Va rugam sa programati. Ena Instal.',
@@ -12,24 +11,15 @@ const DEFAULT_SETTINGS = {
 let db = null;
 function getDb() {
   if (db) return db;
-  if (!admin.apps.length) {
-    admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\\\n/g, '\\n').replace(/\\n/g, '\n'),
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      }),
-    });
-  }
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\\\n/g, '\\n').replace(/\\n/g, '\n'),
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    }),
+  });
   db = admin.firestore();
   return db;
-}
-
-function getVonage() {
-  return new Vonage({
-    apiKey: process.env.VONAGE_API_KEY,
-    apiSecret: process.env.VONAGE_API_SECRET,
-  });
 }
 
 async function getSettings(dbInstance) {
@@ -55,7 +45,11 @@ function normalizePhone(phone) {
 }
 
 async function sendSMS(to, text) {
-  const vonage = getVonage();
+  const Vonage = require('@vonage/server-sdk');
+  const vonage = new Vonage({
+    apiKey: process.env.VONAGE_API_KEY,
+    apiSecret: process.env.VONAGE_API_SECRET,
+  });
   try {
     const resp = await vonage.sms.send({
       to: normalizePhone(to),
@@ -178,7 +172,7 @@ exports.handler = async (event) => {
           sentAt: new Date().toISOString()
         });
         if (r.ok) {
-          await dbInstance.collection('clients').doc(id).update({ smsCount: admin.firestore.FieldValue.increment(1) });
+          await dbInstance.collection('clients').doc(id).update('smsCount', admin.firestore.FieldValue.increment(1));
         }
         return { statusCode: r.ok ? 200 : 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(r) };
       }
