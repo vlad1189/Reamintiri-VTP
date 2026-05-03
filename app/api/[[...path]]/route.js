@@ -172,7 +172,13 @@ async function handle(request, { params }) {
       if (!sub) {
         if (method === 'GET') return NextResponse.json(client)
         if (method === 'PUT') {
-          await db.doc(doc.id).update(await request.json())
+          const body = await request.json()
+          // If lastVerification is being updated, recalculate dueDate
+          const updateData = { ...body }
+          if (body.lastVerification) {
+            updateData.dueDate = addYears(body.lastVerification, 2)
+          }
+          await db.doc(doc.id).update(updateData)
           return NextResponse.json({ ok: true })
         }
         if (method === 'DELETE') {

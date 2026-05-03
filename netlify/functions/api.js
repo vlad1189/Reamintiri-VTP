@@ -179,7 +179,13 @@ exports.handler = async (event) => {
       if (method === 'GET') return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(client) };
 
       if (method === 'PUT') {
-        await dbInstance.collection('clients').doc(id).update(body);
+        // If lastVerification is being updated, recalculate dueDate
+        const updateData = { ...body };
+        if (body.lastVerification) {
+          const newDueDate = new Date(new Date(body.lastVerification).setFullYear(new Date(body.lastVerification).getFullYear() + 2)).toISOString().slice(0, 10);
+          updateData.dueDate = newDueDate;
+        }
+        await dbInstance.collection('clients').doc(id).update(updateData);
         return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: true }) };
       }
 
