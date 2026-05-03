@@ -1,7 +1,7 @@
-// Netlify Firestore API - Fixed SMS path parsing
+// Netlify Firestore API - Firebase + Vonage SMS
 const admin = require('firebase-admin');
 const { v4: uuidv4 } = require('uuid');
-const Vonage = require('@vonage/server-sdk').default;
+const Vonage = require('@vonage/server-sdk');
 
 const DEFAULT_SETTINGS = {
   messageTwoWeeks: 'Buna ziua {nume}, va reamintim ca peste 2 saptamani (la {data}) este scadenta verificarea centralei {model}. Va rugam sa programati. Ena Instal.',
@@ -10,7 +10,6 @@ const DEFAULT_SETTINGS = {
 };
 
 let db = null;
-let vonage = null;
 function getDb() {
   if (db) return db;
   if (!admin.apps.length) {
@@ -27,12 +26,10 @@ function getDb() {
 }
 
 function getVonage() {
-  if (vonage) return vonage;
-  vonage = new Vonage({
+  return new Vonage({
     apiKey: process.env.VONAGE_API_KEY,
     apiSecret: process.env.VONAGE_API_SECRET,
   });
-  return vonage;
 }
 
 async function getSettings(dbInstance) {
@@ -58,9 +55,9 @@ function normalizePhone(phone) {
 }
 
 async function sendSMS(to, text) {
-  const vonageInstance = getVonage();
+  const vonage = getVonage();
   try {
-    const resp = await vonageInstance.sms.send({
+    const resp = await vonage.sms.send({
       to: normalizePhone(to),
       from: process.env.VONAGE_SENDER_ID || 'Ena Instal',
       text,
