@@ -347,7 +347,7 @@ function HomeView({ stats, dueClients, soonClients, total, onNew, onAll, onHisto
           Ena Instal App
         </h2>
         <p className="text-sm text-slate-500 mt-1">
-          Verificări odată la 2 ani · SMS automat
+          Reamintiri VTP · Verificări odată la 2 ani · SMS automat
         </p>
       </div>
 
@@ -907,16 +907,26 @@ function HistoryView({ history }) {
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="min-w-0">
-            <Label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+            <Label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1 block">
               De la data
             </Label>
-            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="text-sm" />
+            <Input 
+              type="date" 
+              value={from} 
+              onChange={(e) => setFrom(e.target.value)} 
+              className="text-xs h-8" 
+            />
           </div>
           <div className="min-w-0">
-            <Label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+            <Label className="text-[10px] font-bold tracking-wider text-slate-500 uppercase mb-1 block">
               Până la data
             </Label>
-            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="text-sm" />
+            <Input 
+              type="date" 
+              value={to} 
+              onChange={(e) => setTo(e.target.value)} 
+              className="text-xs h-8" 
+            />
           </div>
         </div>
         {(q || from || to) && (
