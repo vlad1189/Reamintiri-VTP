@@ -166,9 +166,16 @@ function App() {
 
   async function markVerifiedToday(id) {
     setBusy(true)
-    await fetch(`/api/clients/${id}/verify`, { method: 'POST' })
+    const response = await fetch(`/api/clients/${id}/verify`, { method: 'POST' })
+    const data = await response.json()
     toast.success('Verificare înregistrată azi. Următoarea peste 2 ani.')
-    await loadAll()
+    
+    // Update only the current client instead of reloading all
+    setClients(prev => prev.map(c => 
+      c.id === id 
+        ? { ...c, lastVerification: new Date().toISOString().slice(0,10), dueDate: data.newDueDate }
+        : c
+    ))
     setBusy(false)
   }
 
@@ -181,7 +188,13 @@ function App() {
     }).then((r) => r.json())
     if (r.ok) toast.success('SMS trimis cu succes')
     else toast.error('SMS eșuat: ' + (r.error || ''))
-    await loadAll()
+    
+    // Update only the smsCount for this client instead of reloading all
+    if (r.ok) {
+      setClients(prev => prev.map(c => 
+        c.id === id ? { ...c, smsCount: (c.smsCount || 0) + 1 } : c
+      ))
+    }
     setBusy(false)
   }
 
