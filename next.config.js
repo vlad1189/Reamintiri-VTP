@@ -4,7 +4,7 @@ const nextConfig = {
     unoptimized: true,
   },
   experimental: {
-    // runtime: 'edge',  // Uncomment for Netlify Edge (14.2+ experimental)
+
     serverComponentsExternalPackages: ['firebase-admin'],  // Pentru SSR Edge
   },
   webpack(config, { dev }) {
