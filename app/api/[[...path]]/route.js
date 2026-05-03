@@ -6,7 +6,8 @@ import { Vonage } from '@vonage/server-sdk'
 // ---------- Firebase Admin (singleton) ----------
 let cachedApp = null
 async function getFirestore() {
-  if (cachedApp) return admin.firestore()
+  if (admin.apps.length > 0) return admin.firestore()
+
   
   const projectId = process.env.FIREBASE_PROJECT_ID
   const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
@@ -332,7 +333,9 @@ async function handle(request, { params }) {
     }
 
     // Per-client
-    const m = path.match(/^clients\/([^\/]+)(?:\/(.+))?$/ )
+const m = path.match(/^clients\/([^\/]+)(?:\/([^\/]+))?$/);
+
+
     if (m) {
       const id = m[1]
       const sub = m[2]
@@ -395,8 +398,10 @@ async function handle(request, { params }) {
                     body.template === '2_weeks' ? settings.messageTwoWeeks :
                     body.message || settings.messageTwoWeeks
         const text = body.message ? body.message : renderTemplate(tpl, client)
-        const r = await sendVonageSMS({ to: client.phone, text })
+        // TODO: Vonage SMS (disabled)
+        const r = { ok: false, error: 'SMS temporarily disabled - local only' }
         await logSMS(db, {
+
           clientId: client.id,
           clientName: client.name,
           phone: client.phone,
