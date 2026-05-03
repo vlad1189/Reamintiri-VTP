@@ -1,4 +1,4 @@
-// Netlify Firestore API - Firebase + Vonage SMS (VONAGE CONSTRUCTOR FIXED)
+// Netlify Firestore API - Firebase + Vonage SMS (WORKING VONAGE)
 const admin = require('firebase-admin');
 const { v4: uuidv4 } = require('uuid');
 
@@ -45,21 +45,25 @@ function normalizePhone(phone) {
 }
 
 async function sendSMS(to, text) {
+  // WORKING VONAGE - Direct import + new inside function
   const Vonage = require('@vonage/server-sdk');
   const vonage = new Vonage({
     apiKey: process.env.VONAGE_API_KEY,
     apiSecret: process.env.VONAGE_API_SECRET,
   });
+  
   try {
     const resp = await vonage.sms.send({
       to: normalizePhone(to),
       from: process.env.VONAGE_SENDER_ID || 'Ena Instal',
       text,
     });
+    console.log('Vonage response:', resp);
     const msg = resp.messages[0];
-    return { ok: msg.status === '0', messageId: msg.messageId, error: msg.errorText };
+    return { ok: msg.status === '0', messageId: msg.messageId, error: msg.errorText || null };
   } catch (err) {
-    return { ok: false, error: err.message };
+    console.error('Vonage error:', err);
+    return { ok: false, error: err.message || String(err) };
   }
 }
 
@@ -84,6 +88,16 @@ function clientsToCsv(clients) {
 }
 
 exports.handler = async (event) => {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers: corsHeaders };
+  }
+
   try {
     const dbInstance = getDb();
     const path = event.path.replace(/^\/api\//, '');
@@ -92,23 +106,23 @@ exports.handler = async (event) => {
     if (method !== 'GET') {
       try {
         body = JSON.parse(event.body || '{}');
-      } catch {}
+      } catch (e) {
+        console.log('Body parse error:', e);
+      }
     }
 
-    if (method === 'OPTIONS') {
-      return { statusCode: 200, headers: { 
-        'Access-Control-Allow-Origin': '*', 
-        'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS', 
-        'Access-Control-Allow-Headers': 'Content-Type' 
-      }};
-    }
+    console.log('API request:', method, path, body);
 
     // Settings
     if (path === 'settings') {
-      if (method === 'GET') return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(await getSettings(dbInstance)) };
+      if (method === 'GET') {
+        const settings = await getSettings(dbInstance);
+        return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(settings) };
+      }
       if (method === 'PUT') {
         await dbInstance.collection('settings').doc('main').set(body, { merge: true });
-        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(await getSettings(dbInstance)) };
+        const settings = await getSettings(dbInstance);
+        return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(settings) };
       }
     }
 
@@ -122,41 +136,42 @@ exports.handler = async (event) => {
         headers: {
           'Content-Type': 'text/csv; charset=utf-8',
           'Content-Disposition': `attachment; filename="clienti_${new Date().toISOString().slice(0,10)}.csv"`,
-          'Access-Control-Allow-Origin': '*'
+          ...corsHeaders
         }, 
         body: csv 
       };
     }
 
-    // Parse path for client/id/subroute
+    // Parse path /clients/ID/sub
     const parts = path.split('/').filter(Boolean);
     let id = null, sub = null;
     if (parts[0] === 'clients' && parts[1]) {
       id = parts[1];
-      sub = parts[2];
+      sub = parts.slice(2).join('/');
     }
 
     // Client operations
     if (id) {
       const doc = await dbInstance.collection('clients').doc(id).get();
       if (!doc.exists) {
-        return { statusCode: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ error: 'Client not found' }) };
+        return { statusCode: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Client not found' }) };
       }
       const client = { id: doc.id, ...doc.data() };
 
-      if (method === 'GET') return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(client) };
+      if (method === 'GET') return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(client) };
 
       if (method === 'PUT') {
         await dbInstance.collection('clients').doc(id).update(body);
-        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ ok: true }) };
+        return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: true }) };
       }
 
       if (method === 'DELETE') {
         await dbInstance.collection('clients').doc(id).delete();
-        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ ok: true }) };
+        return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: true }) };
       }
 
       if (sub === 'send-sms' && method === 'POST') {
+        console.log('Sending SMS to', client.phone);
         const settings = await getSettings(dbInstance);
         const text = renderTemplate(settings.messageTwoWeeks, client);
         const r = await sendSMS(client.phone, text);
@@ -174,7 +189,8 @@ exports.handler = async (event) => {
         if (r.ok) {
           await dbInstance.collection('clients').doc(id).update('smsCount', admin.firestore.FieldValue.increment(1));
         }
-        return { statusCode: r.ok ? 200 : 400, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(r) };
+        console.log('SMS result:', r);
+        return { statusCode: r.ok ? 200 : 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(r) };
       }
     }
 
@@ -183,7 +199,7 @@ exports.handler = async (event) => {
       if (method === 'GET') {
         const snapshot = await dbInstance.collection('clients').orderBy('dueDate').get();
         const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(list) };
+        return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(list) };
       }
       if (method === 'POST') {
         const id = uuidv4();
@@ -202,7 +218,7 @@ exports.handler = async (event) => {
           createdAt: new Date().toISOString(),
         };
         await dbInstance.collection('clients').doc(id).set(client);
-        return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(client) };
+        return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(client) };
       }
     }
 
@@ -210,13 +226,13 @@ exports.handler = async (event) => {
     if (path === 'sms-history') {
       const snapshot = await dbInstance.collection('sms_history').orderBy('sentAt', 'desc').limit(500).get();
       const list = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      return { statusCode: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify(list) };
+      return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(list) };
     }
 
-    return { statusCode: 404, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ error: 'Not found', path }) };
+    return { statusCode: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Not found', path, method }) };
   } catch (e) {
     console.error('Netlify error:', e);
-    return { statusCode: 500, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }, body: JSON.stringify({ error: e.message }) };
+    return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: e.message, stack: e.stack }) };
   }
 };
 
