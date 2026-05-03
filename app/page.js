@@ -99,7 +99,16 @@ function App() {
     loadAll()
     // Run cron check only on initial app load (home view)
     if (view === 'home') {
-      fetch('/api/cron/check', { method: 'POST' }).catch(() => {})
+      fetch('/api/cron/check', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          console.log('Cron check completed:', data)
+          // Reload client data to get updated smsCount
+          if (data.sent > 0) {
+            loadAll()
+          }
+        })
+        .catch(() => {})
     }
   }, [])
 
