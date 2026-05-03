@@ -182,7 +182,11 @@ async function handle(request, { params }) {
       }
 
       if (sub === 'send-sms' && method === 'POST') {
-        const body = await request.json()
+        let body = {}
+        try {
+          body = await request.json()
+        } catch {}
+
         const settings = await getSettings(db)
         const text = renderTemplate(settings.messageTwoWeeks, client)
         const r = await sendVonageSMS({ to: client.phone, text })
