@@ -205,10 +205,36 @@ exports.handler = async (event) => {
           sentAt: new Date().toISOString()
         });
         if (r.ok) {
-          await dbInstance.collection('clients').doc(id).update('smsCount', admin.firestore.FieldValue.increment(1));
+          await dbInstance.collection('clients').doc(id).update({ smsCount: admin.firestore.FieldValue.increment(1) });
         }
         console.log('SMS result:', r);
         return { statusCode: r.ok ? 200 : 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(r) };
+      }
+
+      if (sub === 'verify' && method === 'POST') {
+        const today = new Date().toISOString().slice(0, 10);
+        const newDueDate = new Date(new Date(today).setFullYear(new Date(today).getFullYear() + 2)).toISOString().slice(0, 10);
+        
+        // Add to verification history
+        const verificationEntry = {
+          id: uuidv4(),
+          date: today,
+          notes: 'Verificare periodică'
+        };
+        
+        // Get existing history or empty array
+        const existingHistory = client.verificationHistory || [];
+        
+        await dbInstance.collection('clients').doc(id).update({
+          lastVerification: today,
+          dueDate: newDueDate,
+          smsTwoWeeksSent: false,
+          smsDueDateSent: false,
+          verificationHistory: [...existingHistory, verificationEntry]
+        });
+        
+        console.log('Verification updated for client', id, 'new due date:', newDueDate);
+        return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ ok: true, newDueDate }) };
       }
     }
 
