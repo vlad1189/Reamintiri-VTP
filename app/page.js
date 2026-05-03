@@ -66,6 +66,7 @@ const NAVY = '#0F172A'
 
 function App() {
   const [view, setView] = useState('home')
+  const [previousView, setPreviousView] = useState(null)
   const [clients, setClients] = useState([])
   const [history, setHistory] = useState([])
   const [settings, setSettings] = useState(null)
@@ -96,7 +97,10 @@ function App() {
 
   useEffect(() => {
     loadAll()
-    fetch('/api/cron/check', { method: 'POST' }).catch(() => {})
+    // Run cron check only on initial app load (home view)
+    if (view === 'home') {
+      fetch('/api/cron/check', { method: 'POST' }).catch(() => {})
+    }
   }, [])
 
   const selected = useMemo(
@@ -213,8 +217,12 @@ function App() {
             {view !== 'home' && (
               <button
                 onClick={() => {
-                  if (view === 'detail' || view === 'new') setView('home')
-                  else setView('home')
+                  if (previousView) {
+                    setView(previousView)
+                    setPreviousView(null)
+                  } else {
+                    setView('home')
+                  }
                 }}
                 className="p-1 hover:bg-white/10 rounded-none transition"
               >
@@ -249,15 +257,21 @@ function App() {
               soonClients={soonClients}
               total={clients.length}
               onNew={() => {
+                setPreviousView('home')
                 setEditing(null)
                 setView('new')
               }}
-              onAll={() => setView('list')}
+              onAll={() => {
+                setPreviousView('home')
+                setView('list')
+              }}
               onHistory={() => {
+                setPreviousView('home')
                 loadHistory()
                 setView('history')
               }}
               onSelect={(id) => {
+                setPreviousView('home')
                 setSelectedId(id)
                 setView('detail')
               }}
@@ -280,6 +294,7 @@ function App() {
             <ClientList
               clients={clients}
               onSelect={(id) => {
+                setPreviousView('list')
                 setSelectedId(id)
                 setView('detail')
               }}
