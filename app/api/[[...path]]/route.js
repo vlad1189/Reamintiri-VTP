@@ -197,6 +197,9 @@ async function handle(request, { params }) {
         const text = renderTemplate(settings.messageTwoWeeks, client)
         const r = await sendVonageSMS({ to: client.phone, text })
         await logSMS(db, { clientId: id, phone: client.phone, message: text, status: r.ok ? 'sent' : 'failed', ...body })
+        if (r.ok) {
+          await db.doc(doc.id).update({ smsCount: admin.firestore.FieldValue.increment(1) })
+        }
         return NextResponse.json(r)
       }
 
