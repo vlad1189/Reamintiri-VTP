@@ -1,6 +1,9 @@
-// Netlify Firestore API - Firebase + Vonage SMS (WORKING VONAGE)
+// Netlify Firestore API - Firebase + Vonage SMS (WORKING VONAGE - REST API)
+
+
 const admin = require('firebase-admin');
 const { v4: uuidv4 } = require('uuid');
+const axios = require('axios');
 
 const DEFAULT_SETTINGS = {
   messageTwoWeeks: 'Buna ziua {nume}, va reamintim ca peste 2 saptamani (la {data}) este scadenta verificarea centralei {model}. Va rugam sa programati. Ena Instal.',
@@ -45,25 +48,40 @@ function normalizePhone(phone) {
 }
 
 async function sendSMS(to, text) {
-  // WORKING VONAGE - Direct import + new inside function
-  const Vonage = require('@vonage/server-sdk');
-  const vonage = new Vonage({
-    apiKey: process.env.VONAGE_API_KEY,
-    apiSecret: process.env.VONAGE_API_SECRET,
-  });
+  // Folosim API-ul REST Vonage direct
+  const apiKey = process.env.VONAGE_API_KEY;
+  const apiSecret = process.env.VONAGE_API_SECRET;
+  const from = process.env.VONAGE_SENDER_ID || 'Ena Instal';
+  
+  const params = new URLSearchParams();
+  params.append('api_key', apiKey);
+  params.append('api_secret', apiSecret);
+  params.append('to', normalizePhone(to));
+  params.append('from', from);
+  params.append('text', text);
   
   try {
-    const resp = await vonage.sms.send({
-      to: normalizePhone(to),
-      from: process.env.VONAGE_SENDER_ID || 'Ena Instal',
-      text,
+    const response = await axios.post('https://rest.nexmo.com/sms/json', params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
     });
-    console.log('Vonage response:', resp);
-    const msg = resp.messages[0];
-    return { ok: msg.status === '0', messageId: msg.messageId, error: msg.errorText || null };
+    
+    console.log('Vonage response:', response.data);
+    const messages = response.data.messages || [];
+    const msg = messages[0];
+    
+    if (msg && msg.status === '0') {
+      return { ok: true, messageId: msg['message-id'], error: null };
+    } else {
+      return { ok: false, messageId: null, error: msg ? msg['error-text'] : 'Unknown error' };
+    }
   } catch (err) {
-    console.error('Vonage error:', err);
-    return { ok: false, error: err.message || String(err) };
+    console.error('Vonage error:', err.message);
+    if (err.response) {
+      console.error('Response data:', err.response.data);
+    }
+    return { ok: false, error: err.message };
   }
 }
 
@@ -235,4 +253,3 @@ exports.handler = async (event) => {
     return { statusCode: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: e.message, stack: e.stack }) };
   }
 };
-
