@@ -273,6 +273,100 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify(list) };
     }
 
+    // Cron check - automatic SMS sending
+    if (path === 'cron/check' && method === 'POST') {
+      const settings = await getSettings(dbInstance);
+      const snapshot = await dbInstance.collection('clients').orderBy('dueDate').get();
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let sentCount = 0;
+      const results = [];
+
+      for (const doc of snapshot.docs) {
+        const client = { id: doc.id, ...doc.data() };
+        const dueDate = new Date(client.dueDate);
+        dueDate.setHours(0, 0, 0, 0);
+        const daysUntilDue = Math.round((dueDate - today) / (1000 * 60 * 60 * 24));
+
+        // Send SMS 2 weeks before due date (between 14 and 1 days before)
+        if (daysUntilDue <= 14 && daysUntilDue >= 1 && !client.smsTwoWeeksSent) {
+          const text = settings.messageTwoWeeks
+            .replace(/{nume}/g, client.name || '')
+            .replace(/{model}/g, client.model || '')
+            .replace(/{data}/g, client.dueDate?.slice(0,10) || '')
+            .replace(/{adresa}/g, client.address || '')
+            .replace(/{telefon}/g, client.phone || '');
+
+          const r = await sendSMS(client.phone, text);
+          
+          await dbInstance.collection('sms_history').add({
+            clientId: doc.id,
+            clientName: client.name,
+            phone: client.phone,
+            model: client.model,
+            type: '2_weeks',
+            message: text,
+            status: r.ok ? 'sent' : 'failed',
+            messageId: r.messageId,
+            error: r.error,
+            sentAt: new Date().toISOString()
+          });
+
+          if (r.ok) {
+            await dbInstance.doc(doc.id).update({
+              smsTwoWeeksSent: true,
+              smsCount: admin.firestore.FieldValue.increment(1)
+            });
+            sentCount++;
+          }
+
+          results.push({ clientId: doc.id, daysUntilDue, status: r.ok ? 'sent' : 'failed' });
+        }
+
+        // Send SMS on due date
+        if (daysUntilDue === 0 && !client.smsDueDateSent) {
+          const text = settings.messageDueDate
+            .replace(/{nume}/g, client.name || '')
+            .replace(/{model}/g, client.model || '')
+            .replace(/{data}/g, client.dueDate?.slice(0,10) || '')
+            .replace(/{adresa}/g, client.address || '')
+            .replace(/{telefon}/g, client.phone || '');
+
+          const r = await sendSMS(client.phone, text);
+          
+          await dbInstance.collection('sms_history').add({
+            clientId: doc.id,
+            clientName: client.name,
+            phone: client.phone,
+            model: client.model,
+            type: 'due_date',
+            message: text,
+            status: r.ok ? 'sent' : 'failed',
+            messageId: r.messageId,
+            error: r.error,
+            sentAt: new Date().toISOString()
+          });
+
+          if (r.ok) {
+            await dbInstance.doc(doc.id).update({
+              smsDueDateSent: true,
+              smsCount: admin.firestore.FieldValue.increment(1)
+            });
+            sentCount++;
+          }
+
+          results.push({ clientId: doc.id, daysUntilDue, status: r.ok ? 'sent' : 'failed' });
+        }
+      }
+
+      console.log(`Cron check completed. Sent ${sentCount} SMS messages.`);
+      return { 
+        statusCode: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ ok: true, sent: sentCount, results }) 
+      };
+    }
+
     return { statusCode: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' }, body: JSON.stringify({ error: 'Not found', path, method }) };
   } catch (e) {
     console.error('Netlify error:', e);
