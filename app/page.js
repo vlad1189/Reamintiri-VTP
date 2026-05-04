@@ -445,7 +445,7 @@ function HomeView({ stats, dueClients, soonClients, total, onNew, onAll, onHisto
       )}
 
       {dueClients.length > 0 && (
-        <div className="space-y-2 pt-2">
+        <div className="space-y-2 pt-4 border-t border-red-200">
           <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">
             Atenție urgent
           </p>
