@@ -219,7 +219,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center">
-      <div className="w-full max-w-md bg-slate-50 min-h-screen shadow-2xl flex flex-col">
+      <div className="w-full max-w-md md:max-w-2xl lg:max-w-3xl bg-slate-50 min-h-screen shadow-2xl flex flex-col">
         <header
           className="px-5 py-4 flex items-center justify-between text-white"
           style={{ backgroundColor: NAVY }}
@@ -377,14 +377,14 @@ function HomeView({ stats, dueClients, soonClients, total, onNew, onAll, onHisto
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-0 bg-white rounded-none border border-slate-200 overflow-hidden">
-        <StatCell value={stats.total} label="Total clienți" color="text-slate-900" border="border-r border-b" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-0 bg-white rounded-none border border-slate-200 overflow-hidden">
+        <StatCell value={stats.total} label="Total clienți" color="text-slate-900" border="border-r border-b md:border-b" />
         <StatCell value={stats.due} label="Scadenți" color="text-red-600" border="border-b" />
-        <StatCell value={stats.soon} label="Curând (30 zile)" color="text-orange-500" border="border-r" />
-        <StatCell value={stats.smsTotal} label="SMS trimise" color="text-emerald-600" />
+        <StatCell value={stats.soon} label="Curând (30 zile)" color="text-orange-500" border="border-r border-b md:border-b" />
+        <StatCell value={stats.smsTotal} label="SMS trimise" color="text-emerald-600" border="border-b" />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <button
           onClick={onNew}
           className="flex items-center justify-center gap-2 py-3.5 rounded-none text-white font-semibold shadow-sm hover:opacity-90 transition"
@@ -399,17 +399,15 @@ function HomeView({ stats, dueClients, soonClients, total, onNew, onAll, onHisto
         >
           Toți Clienții
         </button>
-      </div>
-      <div className="grid grid-cols-2 gap-3">
         <button
           onClick={onHistory}
-          className="flex items-center justify-center gap-2 py-3 rounded-none bg-white border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition"
+          className="flex items-center justify-center gap-2 py-3.5 rounded-none bg-white border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition"
         >
           <Clock className="w-4 h-4" /> Istoric SMS
         </button>
         <a
           href="/api/export/csv"
-          className="flex items-center justify-center gap-2 py-3 rounded-none bg-white border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition"
+          className="flex items-center justify-center gap-2 py-3.5 rounded-none bg-white border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition"
         >
           <Download className="w-4 h-4" /> Export CSV
         </a>
