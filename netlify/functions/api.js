@@ -282,6 +282,17 @@ exports.handler = async (event) => {
     // Cron check - automatic SMS sending
     if (path === 'cron/check' && method === 'POST') {
       const settings = await getSettings(dbInstance);
+      
+      // Check if auto SMS is enabled
+      if (settings.autoSmsEnabled === false) {
+        console.log('Auto SMS is disabled in settings. Skipping cron check.');
+        return { 
+          statusCode: 200, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }, 
+          body: JSON.stringify({ ok: true, skipped: true, reason: 'Auto SMS disabled' }) 
+        };
+      }
+      
       const snapshot = await dbInstance.collection('clients').orderBy('dueDate').get();
       const today = new Date();
       today.setHours(0, 0, 0, 0);

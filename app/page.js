@@ -378,9 +378,9 @@ function HomeView({ stats, dueClients, soonClients, total, onNew, onAll, onHisto
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-0 bg-white rounded-none border border-slate-200 overflow-hidden">
-        <StatCell value={stats.total} label="Total clienți" color="text-slate-900" border="border-r border-b md:border-b" />
+        <StatCell value={stats.total} label="Total clienți" color="text-slate-900" border="border-r border-b" />
         <StatCell value={stats.due} label="Scadenți" color="text-red-600" border="border-b" />
-        <StatCell value={stats.soon} label="Curând (30 zile)" color="text-orange-500" border="border-r border-b md:border-b" />
+        <StatCell value={stats.soon} label="Curând (30 zile)" color="text-orange-500" border="border-r border-b" />
         <StatCell value={stats.smsTotal} label="SMS trimise" color="text-emerald-600" border="border-b" />
       </div>
 
@@ -810,6 +810,7 @@ function SettingsView({ settings, busy, onCancel, onSubmit }) {
     messageTwoWeeks: settings.messageTwoWeeks,
     messageDueDate: settings.messageDueDate,
     contactPhone: settings.contactPhone || '',
+    autoSmsEnabled: settings.autoSmsEnabled !== false, // default to true for backwards compatibility
   })
 
   return (
@@ -857,6 +858,28 @@ function SettingsView({ settings, busy, onCancel, onSubmit }) {
           placeholder="+40752832309"
         />
       </Field>
+
+      <div className="flex items-center justify-between p-3 bg-white border border-slate-200">
+        <div>
+          <div className="text-sm font-semibold text-slate-900">Trimitere automată SMS</div>
+          <div className="text-xs text-slate-500 mt-0.5">
+            Activează trimiterea automată de mesaje (la 2 săptămâni și la scadență)
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setForm({ ...form, autoSmsEnabled: !form.autoSmsEnabled })}
+          className={`relative w-12 h-6 rounded-full transition-colors ${
+            form.autoSmsEnabled ? 'bg-emerald-500' : 'bg-slate-300'
+          }`}
+        >
+          <span
+            className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+              form.autoSmsEnabled ? 'left-7' : 'left-1'
+            }`}
+          />
+        </button>
+      </div>
 
       <div className="flex gap-2 pt-2">
         <Button
