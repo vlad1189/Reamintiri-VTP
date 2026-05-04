@@ -414,7 +414,7 @@ function HomeView({ stats, dueClients, soonClients, total, onNew, onAll, onHisto
       </div>
 
       {soonClients.length > 0 && (
-        <div className="space-y-2 pt-2">
+        <div className="space-y-2 pt-4 border-t border-slate-200">
           <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">
             Curând (30 zile)
           </p>
