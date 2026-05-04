@@ -379,7 +379,7 @@ function HomeView({ stats, dueClients, soonClients, total, onNew, onAll, onHisto
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-0 bg-white rounded-none border border-slate-200 overflow-hidden">
         <StatCell value={stats.total} label="Total clienți" color="text-slate-900" border="border-r border-b" />
-        <StatCell value={stats.due} label="Scadenți" color="text-red-600" border="border-b" />
+        <StatCell value={stats.due} label="Scadenți" color="text-red-600" border="border-r border-b" />
         <StatCell value={stats.soon} label="Curând (30 zile)" color="text-orange-500" border="border-r border-b" />
         <StatCell value={stats.smsTotal} label="SMS trimise" color="text-emerald-600" border="border-b" />
       </div>
