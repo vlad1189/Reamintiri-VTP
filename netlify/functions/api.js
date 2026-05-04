@@ -294,8 +294,19 @@ exports.handler = async (event) => {
         dueDate.setHours(0, 0, 0, 0);
         const daysUntilDue = Math.round((dueDate - today) / (1000 * 60 * 60 * 24));
 
+        // Check if SMS was already sent today for this client (safety check)
+        const recentHistory = await dbInstance.collection('sms_history')
+          .where('clientId', '==', doc.id)
+          .where('type', 'in', ['2_weeks', 'due_date'])
+          .orderBy('sentAt', 'desc')
+          .limit(1)
+          .get();
+        
+        const lastSent = recentHistory.empty ? null : recentHistory.docs[0].data();
+        const sentToday = lastSent && new Date(lastSent.sentAt).toDateString() === today.toDateString();
+
         // Send SMS 2 weeks before due date (between 14 and 1 days before)
-        if (daysUntilDue <= 14 && daysUntilDue >= 1 && !client.smsTwoWeeksSent) {
+        if (daysUntilDue <= 14 && daysUntilDue >= 1 && !client.smsTwoWeeksSent && !sentToday) {
           const text = settings.messageTwoWeeks
             .replace(/{nume}/g, client.name || '')
             .replace(/{model}/g, client.model || '')
@@ -330,7 +341,7 @@ exports.handler = async (event) => {
         }
 
         // Send SMS on due date
-        if (daysUntilDue === 0 && !client.smsDueDateSent) {
+        if (daysUntilDue === 0 && !client.smsDueDateSent && !sentToday) {
           const text = settings.messageDueDate
             .replace(/{nume}/g, client.name || '')
             .replace(/{model}/g, client.model || '')
